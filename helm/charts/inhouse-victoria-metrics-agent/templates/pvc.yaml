@@ -1,0 +1,32 @@
+{{- $persistence := .Values.persistence }}
+{{- if and $persistence.enabled (not $persistence.existingClaim) .Values.deployment.enabled }}
+{{- $ctx := dict "helm" . }}
+{{- $fullname := include "vm.fullname" $ctx }}
+{{- $ns := include "vm.namespace" $ctx }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullname }}
+  namespace: {{ $ns }}
+  {{- $_ := set $ctx "extraLabels" $persistence.extraLabels }}
+  labels: {{ include "vm.labels" $ctx | nindent 4 }}
+  {{- $_ := unset $ctx "extraLabels" }}
+  {{- with $persistence.annotations  }}
+  annotations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $persistence.accessModes }}
+  accessModes: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $persistence.size }}
+  {{- with $persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end -}}
+  {{- with $persistence.matchLabels }}
+  selector:
+    matchLabels: {{ toYaml . | nindent 6 }}
+  {{- end }}
+{{- end }}
